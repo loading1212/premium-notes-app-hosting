@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Notes - Kişisel Organizasyon</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="loading-screen">
+            <div class="loading-content">
+                <div class="loading-logo">
+                    <i class="fas fa-sticky-note"></i>
+                </div>
+                <h2>Premium Notes</h2>
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Main App Container -->
+        <div id="main-app" class="main-app hidden">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button id="menu-btn" class="menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="app-title">Premium Notes</h1>
+                </div>
+                <div class="header-right">
+                    <button id="search-btn" class="icon-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button id="settings-btn" class="icon-btn">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-content">
+                    <div class="sidebar-section">
+                        <h3>Notlar</h3>
+                        <ul class="sidebar-menu">
+                            <li><a href="#" data-view="all-notes" class="active"><i class="fas fa-sticky-note"></i> Tüm Notlar</a></li>
+                            <li><a href="#" data-view="favorites"><i class="fas fa-star"></i> Favoriler</a></li>
+                            <li><a href="#" data-view="recent"><i class="fas fa-clock"></i> Son Kullanılan</a></li>
+                        </ul>
+                    </div>
+                    <div class="sidebar-section">
+                        <h3>Organizasyon</h3>
+                        <ul class="sidebar-menu">
+                            <li><a href="#" data-view="tasks"><i class="fas fa-tasks"></i> Görevler</a></li>
+                            <li><a href="#" data-view="reminders"><i class="fas fa-bell"></i> Hatırlatmalar</a></li>
+                            <li><a href="#" data-view="tags"><i class="fas fa-tags"></i> Etiketler</a></li>
+                        </ul>
+                    </div>
+                    <div class="sidebar-section">
+                        <h3>Diğer</h3>
+                        <ul class="sidebar-menu">
+                            <li><a href="#" data-view="voice-notes"><i class="fas fa-microphone"></i> Sesli Notlar</a></li>
+                            <li><a href="#" data-view="countries"><i class="fas fa-globe"></i> Gelişmiş Ülkeler</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Notes List View -->
+                <div id="notes-view" class="view active">
+                    <div class="view-header">
+                        <h2>Tüm Notlar</h2>
+                        <button id="new-note-btn" class="primary-btn">
+                            <i class="fas fa-plus"></i> Yeni Not
+                        </button>
+                    </div>
+                    <div class="notes-grid" id="notes-grid">
+                        <!-- Notes will be dynamically loaded here -->
+                    </div>
+                </div>
+
+                <!-- Note Editor View -->
+                <div id="editor-view" class="view">
+                    <div class="editor-header">
+                        <button id="back-btn" class="icon-btn">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <div class="editor-actions">
+                            <button id="voice-record-btn" class="icon-btn">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button id="image-upload-btn" class="icon-btn">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button id="save-note-btn" class="primary-btn">
+                                <i class="fas fa-save"></i> Kaydet
+                            </button>
+                        </div>
+                    </div>
+                    <div class="editor-container">
+                        <input type="text" id="note-title" class="note-title-input" placeholder="Not başlığı...">
+                        <div class="editor-toolbar">
+                            <button class="toolbar-btn" data-command="bold"><i class="fas fa-bold"></i></button>
+                            <button class="toolbar-btn" data-command="italic"><i class="fas fa-italic"></i></button>
+                            <button class="toolbar-btn" data-command="underline"><i class="fas fa-underline"></i></button>
+                            <button class="toolbar-btn" data-command="strikethrough"><i class="fas fa-strikethrough"></i></button>
+                            <div class="toolbar-separator"></div>
+                            <button class="toolbar-btn" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i></button>
+                            <button class="toolbar-btn" data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
+                            <div class="toolbar-separator"></div>
+                            <select class="toolbar-select" id="font-size">
+                                <option value="12px">12px</option>
+                                <option value="14px" selected>14px</option>
+                                <option value="16px">16px</option>
+                                <option value="18px">18px</option>
+                                <option value="20px">20px</option>
+                                <option value="24px">24px</option>
+                            </select>
+                        </div>
+                        <div id="note-editor" class="note-editor" contenteditable="true" placeholder="Notunuzu buraya yazın..."></div>
+                        <div class="note-metadata">
+                            <div class="tags-section">
+                                <label>Etiketler:</label>
+                                <input type="text" id="note-tags" placeholder="Etiket ekle (virgülle ayır)">
+                            </div>
+                            <div class="reminder-section">
+                                <label>Hatırlatma:</label>
+                                <input type="datetime-local" id="note-reminder">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Countries View -->
+                <div id="countries-view" class="view">
+                    <div class="view-header">
+                        <h2>En Gelişmiş 10 Ülke</h2>
+                    </div>
+                    <div class="countries-grid" id="countries-grid">
+                        <!-- Countries will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="settings-view" class="view">
+                    <div class="view-header">
+                        <h2>Ayarlar</h2>
+                    </div>
+                    <div class="settings-content">
+                        <div class="settings-section">
+                            <h3>Görünüm</h3>
+                            <div class="setting-item">
+                                <label>Tema:</label>
+                                <select id="theme-select">
+                                    <option value="dark">Koyu Tema</option>
+                                    <option value="light">Açık Tema</option>
+                                    <option value="auto">Otomatik</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>Dil:</label>
+                                <select id="language-select">
+                                    <option value="tr">Türkçe</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Senkronizasyon</h3>
+                            <div class="setting-item">
+                                <label>Bulut Senkronizasyonu:</label>
+                                <button id="cloud-sync-btn" class="toggle-btn">
+                                    <span class="toggle-slider"></span>
+                                </button>
+                            </div>
+                            <div class="setting-item">
+                                <label>Şifreleme:</label>
+                                <button id="encryption-btn" class="toggle-btn active">
+                                    <span class="toggle-slider"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Bildirimler</h3>
+                            <div class="setting-item">
+                                <label>Hatırlatma Bildirimleri:</label>
+                                <button id="notifications-btn" class="toggle-btn active">
+                                    <span class="toggle-slider"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modals -->
+        <div id="search-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Arama</h3>
+                    <button class="close-modal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Notlarda ara...">
+                    <div id="search-results" class="search-results"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

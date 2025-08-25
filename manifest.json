@@ -1,0 +1,41 @@
+{
+  "name": "Premium Notes - Kişisel Organizasyon",
+  "short_name": "Premium Notes",
+  "description": "Gelişmiş özelliklerle donatılmış premium not defteri ve kişisel organizasyon uygulaması",
+  "version": "1.0.0",
+  "manifest_version": 2,
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#007AFF",
+  "background_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "notifications",
+    "microphone"
+  ],
+  "features": [
+    "rich_text_editing",
+    "voice_notes",
+    "image_upload",
+    "reminders",
+    "cloud_sync",
+    "encryption",
+    "themes",
+    "tags",
+    "search"
+  ]
+}
+
