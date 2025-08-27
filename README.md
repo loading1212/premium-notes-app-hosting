@@ -101,3 +101,4 @@
 ### İletişim
 Bu uygulama Manus AI tarafından geliştirilmiştir.
 Destek için: support@premiumnotes.app
+
