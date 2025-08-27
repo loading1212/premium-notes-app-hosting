@@ -35,15 +35,6 @@ class PremiumNotesApp {
         document.getElementById('main-app').classList.remove('hidden');
     }
 
-    deleteNote(id) {
-        if (confirm("Bu notu silmek istediğinizden emin misiniz?")) {
-            this.notes = this.notes.filter(note => note.id !== id);
-            localStorage.setItem("premium-notes", JSON.stringify(this.notes));
-            this.renderNotes();
-            this.showNotification("Not başarıyla silindi!", "success");
-        }
-    }
-
     setupEventListeners() {
         // Navigation
         document.getElementById('menu-btn').addEventListener('click', () => this.toggleSidebar());
@@ -60,17 +51,9 @@ class PremiumNotesApp {
         });
 
         // Note actions
-        document.getElementById("new-note-btn").addEventListener("click", () => this.createNewNote());
-        document.getElementById("back-btn").addEventListener("click", () => this.showView("all-notes"));
-        document.getElementById("save-note-btn").addEventListener("click", () => this.saveCurrentNote());
-        
-        // Event delegation for delete buttons
-        document.getElementById("notes-grid").addEventListener("click", (e) => {
-            if (e.target.closest(".delete-note-btn")) {
-                const id = parseInt(e.target.closest(".delete-note-btn").dataset.id);
-                this.deleteNote(id);
-            }
-        });
+        document.getElementById('new-note-btn').addEventListener('click', () => this.createNewNote());
+        document.getElementById('back-btn').addEventListener('click', () => this.showView('all-notes'));
+        document.getElementById('save-note-btn').addEventListener('click', () => this.saveCurrentNote());
         
         // Editor toolbar
         document.querySelectorAll('.toolbar-btn').forEach(btn => {
@@ -125,58 +108,32 @@ class PremiumNotesApp {
     loadTranslations() {
         this.translations = {
             tr: {
-                "app-title": "Premium Notes",
-                "all-notes": "Tüm Notlar",
-                "favorites": "Favoriler",
-                "recent": "Son Kullanılan",
-                "tasks": "Görevler",
-                "reminders": "Hatırlatmalar",
-                "tags": "Etiketler",
-                "voice-notes": "Sesli Notlar",
-                "countries": "Gelişmiş Ülkeler",
-                "countries-title": "En Gelişmiş 10 Ülke",
-                "new-note": "Yeni Not",
-                "save": "Kaydet",
-                "search": "Ara",
-                "settings": "Ayarlar",
-                "note-title-placeholder": "Not başlığı...",
-                "note-editor-placeholder": "Notunuzu buraya yazın...",
-                "note-tags-placeholder": "Etiket ekle (virgülle ayır)",
-                "search-placeholder": "Notlarda ara...",
-                "dark-theme": "Koyu Tema",
-                "light-theme": "Açık Tema",
-                "auto-theme": "Otomatik",
-                "turkish": "Türkçe",
-                "english": "English",
-                "empty-notes-message": "Henüz not bulunmuyor",
-                "create-first-note": "İlk Notunuzu Oluşturun"
+                'all-notes': 'Tüm Notlar',
+                'favorites': 'Favoriler',
+                'recent': 'Son Kullanılan',
+                'tasks': 'Görevler',
+                'reminders': 'Hatırlatmalar',
+                'tags': 'Etiketler',
+                'voice-notes': 'Sesli Notlar',
+                'countries': 'Gelişmiş Ülkeler',
+                'new-note': 'Yeni Not',
+                'save': 'Kaydet',
+                'search': 'Ara',
+                'settings': 'Ayarlar'
             },
             en: {
-                "app-title": "Premium Notes",
-                "all-notes": "All Notes",
-                "favorites": "Favorites",
-                "recent": "Recent",
-                "tasks": "Tasks",
-                "reminders": "Reminders",
-                "tags": "Tags",
-                "voice-notes": "Voice Notes",
-                "countries": "Developed Countries",
-                "countries-title": "Top 10 Developed Countries",
-                "new-note": "New Note",
-                "save": "Save",
-                "search": "Search",
-                "settings": "Settings",
-                "note-title-placeholder": "Note title...",
-                "note-editor-placeholder": "Write your note here...",
-                "note-tags-placeholder": "Add tags (comma separated)",
-                "search-placeholder": "Search in notes...",
-                "dark-theme": "Dark Theme",
-                "light-theme": "Light Theme",
-                "auto-theme": "Auto",
-                "turkish": "Turkish",
-                "english": "English",
-                "empty-notes-message": "No notes yet",
-                "create-first-note": "Create Your First Note"
+                'all-notes': 'All Notes',
+                'favorites': 'Favorites',
+                'recent': 'Recent',
+                'tasks': 'Tasks',
+                'reminders': 'Reminders',
+                'tags': 'Tags',
+                'voice-notes': 'Voice Notes',
+                'countries': 'Developed Countries',
+                'new-note': 'New Note',
+                'save': 'Save',
+                'search': 'Search',
+                'settings': 'Settings'
             }
         };
     }
@@ -352,16 +309,13 @@ class PremiumNotesApp {
             noteCard.innerHTML = `
                 <div class="note-card-header">
                     <h3 class="note-title">${note.title}</h3>
-                    <div class="note-actions">
-                        <button class="icon-btn delete-note-btn" data-id="${note.id}"><i class="fas fa-trash"></i></button>
-                        <span class="note-date">${formattedDate}</span>
-                    </div>
+                    <span class="note-date">${formattedDate}</span>
                 </div>
                 <div class="note-preview">${preview}</div>
                 <div class="note-tags">
-                    ${note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join("")}
+                    ${note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('')}
                 </div>
-                ${note.reminder ? `<div class="note-reminder"><i class="fas fa-bell"></i> ${new Date(note.reminder).toLocaleString("tr-TR")}</div>` : ""}
+                ${note.reminder ? `<div class="note-reminder"><i class="fas fa-bell"></i> ${new Date(note.reminder).toLocaleString('tr-TR')}</div>` : ''}
             `;
             
             notesGrid.appendChild(noteCard);
@@ -539,55 +493,9 @@ class PremiumNotesApp {
     }
 
     changeLanguage(lang) {
-        localStorage.setItem("language-preference", lang);
-        this.updateUIForLanguage(lang);
-        this.showNotification("Dil başarıyla değiştirildi!", "success");
-    }
-
-    updateUIForLanguage(lang) {
-        // Update header
-        document.querySelector(".app-title").textContent = this.translations[lang]["app-title"];
-        document.getElementById("new-note-btn").querySelector("span").textContent = this.translations[lang]["new-note"];
-        document.getElementById("save-note-btn").querySelector("span").textContent = this.translations[lang]["save"];
-
-        // Update sidebar
-        document.querySelector("[data-view=\"all-notes\"]").textContent = this.translations[lang]["all-notes"];
-        document.querySelector("[data-view=\"favorites\"]").textContent = this.translations[lang]["favorites"];
-        document.querySelector("[data-view=\"recent\"]").textContent = this.translations[lang]["recent"];
-        document.querySelector("[data-view=\"tasks\"]").textContent = this.translations[lang]["tasks"];
-        document.querySelector("[data-view=\"reminders\"]").textContent = this.translations[lang]["reminders"];
-        document.querySelector("[data-view=\"tags\"]").textContent = this.translations[lang]["tags"];
-        document.querySelector("[data-view=\"voice-notes\"]").textContent = this.translations[lang]["voice-notes"];
-        document.querySelector("[data-view=\"countries\"]").textContent = this.translations[lang]["countries"];
-
-        // Update view headers
-        document.querySelector("#notes-view h2").textContent = this.translations[lang]["all-notes"];
-        document.querySelector("#countries-view h2").textContent = this.translations[lang]["countries-title"];
-        document.querySelector("#settings-view h2").textContent = this.translations[lang]["settings"];
-
-        // Update placeholders
-        document.getElementById("note-title").placeholder = this.translations[lang]["note-title-placeholder"];
-        document.getElementById("note-editor").placeholder = this.translations[lang]["note-editor-placeholder"];
-        document.getElementById("note-tags").placeholder = this.translations[lang]["note-tags-placeholder"];
-        document.getElementById("search-input").placeholder = this.translations[lang]["search-placeholder"];
-
-        // Update settings labels
-        document.querySelector("#theme-select option[value=\"dark\"]").textContent = this.translations[lang]["dark-theme"];
-        document.querySelector("#theme-select option[value=\"light\"]").textContent = this.translations[lang]["light-theme"];
-        document.querySelector("#theme-select option[value=\"auto\"]").textContent = this.translations[lang]["auto-theme"];
-        document.querySelector("#language-select option[value=\"tr\"]").textContent = this.translations[lang]["turkish"];
-        document.querySelector("#language-select option[value=\"en\"]").textContent = this.translations[lang]["english"];
-
-        // Update empty state message
-        const emptyState = document.querySelector("#notes-view .empty-state p");
-        if (emptyState) {
-            emptyState.textContent = this.translations[lang]["empty-notes-message"];
-            document.querySelector("#notes-view .empty-state button").querySelector("span").textContent = this.translations[lang]["create-first-note"];
-        }
-
-        // Re-render notes and countries to update their content if needed
-        this.renderNotes();
-        this.renderCountries();
+        // This would typically reload the interface with new language
+        localStorage.setItem('language-preference', lang);
+        this.showNotification('Dil değişikliği için uygulamayı yeniden başlatın', 'info');
     }
 
     stripHtml(html) {
@@ -644,9 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app.changeTheme(savedTheme);
     
     // Load saved language
-    const savedLang = localStorage.getItem("language-preference") || "tr";
-    document.getElementById("language-select").value = savedLang;
-    window.app.updateUIForLanguage(savedLang);
+    const savedLang = localStorage.getItem('language-preference') || 'tr';
+    document.getElementById('language-select').value = savedLang;
 });
 
 // Add CSS animation for notifications
@@ -693,6 +600,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-
-
