@@ -16,143 +16,58 @@ class PremiumNotesApp {
         this.setupEventListeners();
         this.loadTranslations();
         this.showLoadingScreen();
-        
-        // Simulate loading time
-        setTimeout(() => {
-            this.hideLoadingScreen();
-            this.renderNotes();
-        }, 2000);
-    }
+        this.
 
-    showLoadingScreen() {
-        document.getElementById('loading-screen').style.display = 'flex';
-        document.getElementById('main-app').classList.add('hidden');
-    }
-
-    hideLoadingScreen() {
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('main-app').classList.remove('hidden');
-    }
-
-    setupEventListeners() {
-        // Navigation
-        document.getElementById('menu-btn').addEventListener('click', () => this.toggleSidebar());
-        document.getElementById('search-btn').addEventListener('click', () => this.openSearchModal());
-        document.getElementById('settings-btn').addEventListener('click', () => this.showView('settings'));
-        
-        // Sidebar navigation
-        document.querySelectorAll('[data-view]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showView(e.target.closest('[data-view]').dataset.view);
-                this.setActiveNavItem(e.target.closest('[data-view]'));
-            });
+    setActiveNavItem(activeItem) {
+        document.querySelectorAll('.sidebar-menu a').forEach(item => {
+            item.classList.remove('active');
         });
-
-        // Note actions
-        document.getElementById('new-note-btn').addEventListener('click', () => this.createNewNote());
-        document.getElementById('back-btn').addEventListener('click', () => this.showView('all-notes'));
-        document.getElementById('save-note-btn').addEventListener('click', () => this.saveCurrentNote());
-        
-        // Editor toolbar
-        document.querySelectorAll('.toolbar-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.executeCommand(e.target.dataset.command));
-        });
-        
-        document.getElementById('font-size').addEventListener('change', (e) => {
-            document.execCommand('fontSize', false, '7');
-            const fontElements = document.querySelectorAll('font[size="7"]');
-            fontElements.forEach(el => {
-                el.removeAttribute('size');
-                el.style.fontSize = e.target.value;
-            });
-        });
-
-        // Voice recording
-        document.getElementById('voice-record-btn').addEventListener('click', () => this.toggleVoiceRecording());
-        
-        // Image upload
-        document.getElementById('image-upload-btn').addEventListener('click', () => this.uploadImage());
-
-        // Settings
-        document.getElementById('theme-select').addEventListener('change', (e) => this.changeTheme(e.target.value));
-        document.getElementById('language-select').addEventListener('change', (e) => this.changeLanguage(e.target.value));
-        
-        // Toggle buttons
-        document.querySelectorAll('.toggle-btn').forEach(btn => {
-            btn.addEventListener('click', () => btn.classList.toggle('active'));
-        });
-
-        // Modal
-        document.querySelector('.close-modal').addEventListener('click', () => this.closeSearchModal());
-        document.getElementById('search-input').addEventListener('input', (e) => this.searchNotes(e.target.value));
-
-        // Click outside sidebar to close
-        document.addEventListener('click', (e) => {
-            const sidebar = document.getElementById('sidebar');
-            const menuBtn = document.getElementById('menu-btn');
-            if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
-                sidebar.classList.remove('active');
-            }
-        });
-
-        // Auto-save
-        setInterval(() => {
-            if (this.currentNote && document.getElementById('editor-view').classList.contains('active')) {
-                this.saveCurrentNote(true);
-            }
-        }, 30000); // Auto-save every 30 seconds
+        activeItem.classList.add('active');
     }
 
-    loadTranslations() {
-        this.translations = {
-            tr: {
-                'all-notes': 'Tüm Notlar',
-                'favorites': 'Favoriler',
-                'recent': 'Son Kullanılan',
-                'tasks': 'Görevler',
-                'reminders': 'Hatırlatmalar',
-                'tags': 'Etiketler',
-                'voice-notes': 'Sesli Notlar',
-                'new-note': 'Yeni Not',
-                'save': 'Kaydet',
-                'search': 'Ara',
-                'settings': 'Ayarlar'
-            },
-            en: {
-                'all-notes': 'All Notes',
-                'favorites': 'Favorites',
-                'recent': 'Recent',
-                'tasks': 'Tasks',
-                'reminders': 'Reminders',
-                'tags': 'Tags',
-                'voice-notes': 'Voice Notes',
-                'new-note': 'New Note',
-                'save': 'Save',
-                'search': 'Search',
-                'settings': 'Settings'
-            }
-        };
+
+    // --- Simple AES-GCM encryption helpers ---
+    async getCryptoKey() {
+        const pass = localStorage.getItem('encryption-passphrase') || 'premium-notes-default-pass';
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw', enc.encode(pass), {name: 'PBKDF2'}, false, ['deriveKey']
+        );
+        const salt = enc.encode('pn-salt-v1'); // fixed salt for demo
+        return await window.crypto.subtle.deriveKey(
+            {name:'PBKDF2', salt, iterations: 100000, hash: 'SHA-256'},
+            keyMaterial,
+            {name:'AES-GCM', length: 256},
+            false,
+            ['encrypt','decrypt']
+        );
     }
 
-    toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('active');
+    async encryptText(plainText) {
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const key = await this.getCryptoKey();
+        const enc = new TextEncoder();
+        const cipher = await window.crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(plainText));
+        const buff = new Uint8Array(iv.byteLength + cipher.byteLength);
+        buff.set(iv,0); buff.set(new Uint8Array(cipher), iv.byteLength);
+        // base64 encode
+        let binary = ''; buff.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary);
     }
 
-    showView(viewName) {
-        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-        const targetView = document.getElementById(`${viewName}-view`) || document.getElementById('notes-view');
-        targetView.classList.add('active');
-        this.currentView = viewName;
-        if (['all-notes', 'favorites', 'recent'].includes(viewName)) {
-            this.renderNotes();
+    async decryptText(b64) {
+        try {
+            const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            const iv = data.slice(0,12);
+            const cipher = data.slice(12);
+            const key = await this.getCryptoKey();
+            const plain = await window.crypto.subtle.decrypt({name:'AES-GCM', iv}, key, cipher);
+            return new TextDecoder().decode(plain);
+        } catch (e) {
+            return ''; // decryption failed
         }
     }
 
-    setActiveNavItem(activeItem) {
-        document.querySelectorAll('.sidebar-menu a').forEach(item => item.classList.remove('active'));
-        activeItem.classList.add('active');
-    }
 
     createNewNote() {
         this.currentNote = {
@@ -165,47 +80,104 @@ class PremiumNotesApp {
             updatedAt: new Date().toISOString(),
             isFavorite: false
         };
+        
         this.showNoteEditor();
     }
 
-    showNoteEditor(note = null) {
-        if (note) this.currentNote = note;
-        this.showView('editor');
-        document.getElementById('note-title').value = this.currentNote.title || '';
-        document.getElementById('note-editor').innerHTML = this.currentNote.content || '';
-        document.getElementById('note-tags').value = this.currentNote.tags ? this.currentNote.tags.join(', ') : '';
-        if (this.currentNote.reminder) {
-            document.getElementById('note-reminder').value = new Date(this.currentNote.reminder).toISOString().slice(0, 16);
+    async showNoteEditor(note = null) {
+        if (note) {
+            this.currentNote = note;
         }
-        if (!this.currentNote.title) document.getElementById('note-title').focus();
+        
+        this.showView('editor');
+        
+        // Populate editor
+        document.getElementById('note-title').value = this.currentNote.title || '';
+        let contentToShow = this.currentNote.content || '';
+        if (this.currentNote.isEncrypted && contentToShow) {
+            contentToShow = await this.decryptText(contentToShow);
+        }
+        document.getElementById('note-editor').innerHTML = contentToShow;
+        document.getElementById('note-tags').value = this.currentNote.tags ? this.currentNote.tags.join(', ') : '';
+        
+        if (this.currentNote.reminder) {
+            const reminderDate = new Date(this.currentNote.reminder);
+            document.getElementById('note-reminder').value = reminderDate.toISOString().slice(0, 16);
+        }
+        
+        // Focus on title if new note
+        if (!this.currentNote.title) {
+            document.getElementById('note-title').focus();
+        }
     }
 
-    saveCurrentNote(autoSave = false) {
+    async saveCurrentNote(autoSave = false) {
         if (!this.currentNote) return;
+        
         const title = document.getElementById('note-title').value.trim();
-        const content = document.getElementById('note-editor').innerHTML.trim();
+        let content = document.getElementById('note-editor').innerHTML.trim();
         const tags = document.getElementById('note-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
         const reminder = document.getElementById('note-reminder').value;
-        if (!title && !content && !autoSave) return this.showNotification('Not başlığı veya içerik boş olamaz!', 'error');
+        
+        if (!title && !content) {
+            if (!autoSave) {
+                this.showNotification('Not başlığı veya içerik boş olamaz!', 'error');
+            }
+            return;
+        }
+        
         this.currentNote.title = title || 'Başlıksız Not';
         this.currentNote.content = content;
         this.currentNote.tags = tags;
         this.currentNote.reminder = reminder || null;
         this.currentNote.updatedAt = new Date().toISOString();
+        
+        // Encrypt if enabled
+        const encryptionEnabled = document.getElementById('encryption-btn')?.classList.contains('active');
+        if (encryptionEnabled && content) {
+            content = await this.encryptText(content);
+            this.currentNote.isEncrypted = true;
+        } else {
+            this.currentNote.isEncrypted = false;
+        }
+
+        // Add or update note
         const existingIndex = this.notes.findIndex(note => note.id === this.currentNote.id);
-        if (existingIndex >= 0) this.notes[existingIndex] = this.currentNote;
-        else this.notes.push(this.currentNote);
+        if (existingIndex >= 0) {
+            this.notes[existingIndex] = this.currentNote;
+        } else {
+            this.notes.push(this.currentNote);
+        }
+        
+        // Save to localStorage
         localStorage.setItem('premium-notes', JSON.stringify(this.notes));
-        if (this.currentNote.reminder) this.setReminder(this.currentNote);
-        if (!autoSave) this.showNotification('Not başarıyla kaydedildi!', 'success');
+        
+        // Set reminder if specified
+        if (this.currentNote.reminder) {
+            this.setReminder(this.currentNote);
+        }
+        
+        if (!autoSave) {
+            this.showNotification('Not başarıyla kaydedildi!', 'success');
+        }
     }
 
     renderNotes() {
         const notesGrid = document.getElementById('notes-grid');
         notesGrid.innerHTML = '';
+        
         let filteredNotes = [...this.notes];
-        if (this.currentView === 'favorites') filteredNotes = filteredNotes.filter(note => note.isFavorite);
-        if (this.currentView === 'recent') filteredNotes = filteredNotes.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,10);
+        
+        // Filter based on current view
+        switch(this.currentView) {
+            case 'favorites':
+                filteredNotes = filteredNotes.filter(note => note.isFavorite);
+                break;
+            case 'recent':
+                filteredNotes = filteredNotes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 10);
+                break;
+        }
+        
         if (filteredNotes.length === 0) {
             notesGrid.innerHTML = `
                 <div class="empty-state">
@@ -214,15 +186,19 @@ class PremiumNotesApp {
                     <button class="primary-btn" onclick="app.createNewNote()" style="margin-top: 1rem;">
                         <i class="fas fa-plus"></i> İlk Notunuzu Oluşturun
                     </button>
-                </div>`;
+                </div>
+            `;
             return;
         }
+        
         filteredNotes.forEach(note => {
             const noteCard = document.createElement('div');
             noteCard.className = 'note-card';
             noteCard.onclick = () => this.showNoteEditor(note);
-            const preview = this.stripHtml(note.content).substring(0,150)+(note.content.length>150?'...':'');
-            const formattedDate = new Date(note.updatedAt).toLocaleDateString('tr-TR');
+            
+            const preview = note.isEncrypted ? (this.translations[this.currentLang]['encrypted-note']) : (this.stripHtml(note.content).substring(0, 150) + (this.stripHtml(note.content).length > 150 ? '...' : ''));
+            const formattedDate = new Date(note.updatedAt).toLocaleDateString(this.getLocale());
+            
             noteCard.innerHTML = `
                 <div class="note-card-header">
                     <h3 class="note-title">${note.title}</h3>
@@ -232,63 +208,30 @@ class PremiumNotesApp {
                 <div class="note-tags">
                     ${note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('')}
                 </div>
-                ${note.reminder?`<div class="note-reminder"><i class="fas fa-bell"></i> ${new Date(note.reminder).toLocaleString('tr-TR')}</div>`:''}
+                ${note.reminder ? `<div class="note-reminder"><i class="fas fa-bell"></i> ${new Date(note.reminder).toLocaleString('tr-TR')}</div>` : ''}
             `;
+            
             notesGrid.appendChild(noteCard);
         });
     }
 
-    executeCommand(command) {
-        document.execCommand(command,false,null);
-        document.getElementById('note-editor').focus();
+    insertAudioIntoNote(audioUrl) {
+        const editor = document.getElementById('note-editor');
+        const audioElement = `<div class="audio-note"><audio controls src="${audioUrl}"></audio></div>`;
+        editor.innerHTML += audioElement;
     }
 
-    async toggleVoiceRecording() {
-        const btn = document.getElementById('voice-record-btn');
-        if(!this.isRecording){
-            try{
-                const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-                this.mediaRecorder=new MediaRecorder(stream);
-                this.audioChunks=[];
-                this.mediaRecorder.ondataavailable=(e)=>{this.audioChunks.push(e.data)};
-                this.mediaRecorder.onstop=()=>{
-                    const audioBlob=new Blob(this.audioChunks,{type:'audio/wav'});
-                    const audioUrl=URL.createObjectURL(audioBlob);
-                    this.insertAudioIntoNote(audioUrl);
-                };
-                this.mediaRecorder.start();
-                this.isRecording=true;
-                btn.innerHTML='<i class="fas fa-stop"></i>';
-                btn.style.backgroundColor='var(--error)';
-                this.showNotification('Ses kaydı başladı...','info');
-            }catch(e){this.showNotification('Mikrofon erişimi reddedildi!','error')}
-        }else{
-            this.mediaRecorder.stop();
-            this.mediaRecorder.stream.getTracks().forEach(track=>track.stop());
-            this.isRecording=false;
-            btn.innerHTML='<i class="fas fa-microphone"></i>';
-            btn.style.backgroundColor='';
-            this.showNotification('Ses kaydı tamamlandı!','success');
-        }
-    }
-
-    insertAudioIntoNote(audioUrl){
-        const editor=document.getElementById('note-editor');
-        const audioElement=`<div class="audio-note"><audio controls src="${audioUrl}"></audio></div>`;
-        editor.innerHTML+=audioElement;
-    }
-
-    uploadImage(){
-        const input=document.createElement('input');
-        input.type='file';
-        input.accept='image/*';
-        input.onchange=(e)=>{
-            const file=e.target.files[0];
-            if(file){
-                const reader=new FileReader();
-                reader.onload=(e)=>{
-                    const img=`<div class="image-note"><img src="${e.target.result}" style="max-width:100%;border-radius:8px;margin:10px 0;"></div>`;
-                    document.getElementById('note-editor').innerHTML+=img;
+    uploadImage() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = `<div class="image-note"><img src="${e.target.result}" style="max-width: 100%; border-radius: 8px; margin: 10px 0;"></div>`;
+                    document.getElementById('note-editor').innerHTML += img;
                 };
                 reader.readAsDataURL(file);
             }
@@ -296,58 +239,67 @@ class PremiumNotesApp {
         input.click();
     }
 
-    setReminder(note){
-        const reminderTime=new Date(note.reminder).getTime();
-        const now=Date.now();
-        if(reminderTime>now){
-            setTimeout(()=>{
-                this.showNotification(`Hatırlatma: ${note.title}`,'info');
-                if(Notification.permission==='granted'){
-                    new Notification('Premium Notes Hatırlatma',{body:note.title,icon:'/favicon.ico'});
+    setReminder(note) {
+        const reminderTime = new Date(note.reminder).getTime();
+        const now = Date.now();
+        
+        if (reminderTime > now) {
+            const timeout = reminderTime - now;
+            setTimeout(() => {
+                this.showNotification(`Hatırlatma: ${note.title}`, 'info');
+                
+                // Browser notification if permission granted
+                if (Notification.permission === 'granted') {
+                    new Notification('Premium Notes Hatırlatma', {
+                        body: note.title,
+                        icon: '/favicon.ico'
+                    });
                 }
-            },reminderTime-now);
+            }, timeout);
         }
     }
 
-    openSearchModal(){
+    openSearchModal() {
         document.getElementById('search-modal').classList.add('active');
         document.getElementById('search-input').focus();
     }
 
-    closeSearchModal(){
+    closeSearchModal() {
         document.getElementById('search-modal').classList.remove('active');
-        document.getElementById('search-input').value='';
-        document.getElementById('search-results').innerHTML='';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
     }
 
-    searchNotes(query){
-        const results=document.getElementById('search-results');
-        results.innerHTML='';
-        if(!query.trim()) return;
-        const filteredNotes=this.notes.filter(note=>
+    searchNotes(query) {
+        const results = document.getElementById('search-results');
+        results.innerHTML = '';
+        
+        if (!query.trim()) return;
+        
+        const filteredNotes = this.notes.filter(note => 
             note.title.toLowerCase().includes(query.toLowerCase()) ||
             this.stripHtml(note.content).toLowerCase().includes(query.toLowerCase()) ||
-            note.tags.some(tag=>tag.toLowerCase().includes(query.toLowerCase()))
+            note.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
         );
-        filteredNotes.forEach(note=>{
-            const resultItem=document.createElement('div');
-            resultItem.className='search-result-item';
-            resultItem.onclick=()=>
+        
+        filteredNotes.forEach(note => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'search-result-item';
             resultItem.onclick = () => {
                 this.closeSearchModal();
                 this.showNoteEditor(note);
             };
-
+            
             const preview = this.stripHtml(note.content).substring(0, 100) + '...';
-
+            
             resultItem.innerHTML = `
                 <div class="search-result-title">${note.title}</div>
                 <div class="search-result-preview">${preview}</div>
             `;
-
+            
             results.appendChild(resultItem);
         });
-
+        
         if (filteredNotes.length === 0) {
             results.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">Sonuç bulunamadı</div>';
         }
@@ -359,6 +311,7 @@ class PremiumNotesApp {
         } else if (theme === 'dark') {
             document.documentElement.removeAttribute('data-theme');
         } else {
+            // Auto theme based on system preference
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (prefersDark) {
                 document.documentElement.removeAttribute('data-theme');
@@ -366,14 +319,43 @@ class PremiumNotesApp {
                 document.documentElement.setAttribute('data-theme', 'light');
             }
         }
-
+        
         localStorage.setItem('theme-preference', theme);
     }
 
-    changeLanguage(lang) {
+    async changeLanguage(lang) {
+        this.currentLang = lang;
         localStorage.setItem('language-preference', lang);
-        this.showNotification('Dil değişikliği için uygulamayı yeniden başlatın', 'info');
+        this.applyTranslations();
+        this.renderNotes();
+        this.showNotification(lang === 'tr' ? 'Dil Türkçe olarak ayarlandı' : 'Language set to English', 'success');
     }
+
+    getLocale() {
+        return (this.currentLang === 'tr') ? 'tr-TR' : 'en-US';
+    }
+
+    applyTranslations() {
+        const dict = this.translations[this.currentLang] || {};
+        // text content
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) el.textContent = dict[key];
+        });
+        // placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (dict[key]) el.setAttribute('placeholder', dict[key]);
+        });
+        // editor pseudo-placeholder
+        const editor = document.getElementById('note-editor');
+        if (editor && dict['note-placeholder']) {
+            editor.setAttribute('placeholder', dict['note-placeholder']);
+        }
+        // document lang
+        document.documentElement.setAttribute('lang', this.currentLang);
+    }
+
 
     stripHtml(html) {
         const tmp = document.createElement('div');
@@ -396,14 +378,18 @@ class PremiumNotesApp {
             z-index: 10000;
             animation: slideIn 0.3s ease;
         `;
-
-        if (type === 'error') notification.style.background = 'var(--error)';
-        else if (type === 'success') notification.style.background = 'var(--success)';
-        else if (type === 'warning') notification.style.background = 'var(--warning)';
-
+        
+        if (type === 'error') {
+            notification.style.background = 'var(--error)';
+        } else if (type === 'success') {
+            notification.style.background = 'var(--success)';
+        } else if (type === 'warning') {
+            notification.style.background = 'var(--warning)';
+        }
+        
         notification.textContent = message;
         document.body.appendChild(notification);
-
+        
         setTimeout(() => {
             notification.remove();
         }, 3000);
@@ -413,17 +399,21 @@ class PremiumNotesApp {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new PremiumNotesApp();
-
+    
+    // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
-
+    
+    // Load saved theme
     const savedTheme = localStorage.getItem('theme-preference') || 'dark';
     document.getElementById('theme-select').value = savedTheme;
     window.app.changeTheme(savedTheme);
-
+    
+    // Load saved language
     const savedLang = localStorage.getItem('language-preference') || 'tr';
     document.getElementById('language-select').value = savedLang;
+    window.app.changeLanguage(savedLang);
 });
 
 // Add CSS animation for notifications
