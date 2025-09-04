@@ -753,8 +753,3 @@ body {
         justify-content: center;
     }
     
-    .countries-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
