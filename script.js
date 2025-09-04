@@ -16,7 +16,171 @@ class PremiumNotesApp {
         this.setupEventListeners();
         this.loadTranslations();
         this.showLoadingScreen();
-        this.
+        this.loadCountriesData();
+        
+        // Simulate loading time
+        setTimeout(() => {
+            this.hideLoadingScreen();
+            this.renderNotes();
+        }, 2000);
+    }
+
+    showLoadingScreen() {
+        document.getElementById('loading-screen').style.display = 'flex';
+        document.getElementById('main-app').classList.add('hidden');
+    }
+
+    hideLoadingScreen() {
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('main-app').classList.remove('hidden');
+    }
+
+    setupEventListeners() {
+        // Navigation
+        document.getElementById('menu-btn').addEventListener('click', () => this.toggleSidebar());
+        document.getElementById('search-btn').addEventListener('click', () => this.openSearchModal());
+        document.getElementById('settings-btn').addEventListener('click', () => this.showView('settings'));
+        
+        // Sidebar navigation
+        document.querySelectorAll('[data-view]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showView(e.target.closest('[data-view]').dataset.view);
+                this.setActiveNavItem(e.target.closest('[data-view]'));
+            });
+        });
+
+        // Note actions
+        document.getElementById('new-note-btn').addEventListener('click', () => this.createNewNote());
+        document.getElementById('back-btn').addEventListener('click', () => this.showView('all-notes'));
+        document.getElementById('save-note-btn').addEventListener('click', () => this.saveCurrentNote());
+        
+        // Editor toolbar
+        document.querySelectorAll('.toolbar-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.executeCommand(e.target.dataset.command));
+        });
+        
+        document.getElementById('font-size').addEventListener('change', (e) => {
+            document.execCommand('fontSize', false, '7');
+            const fontElements = document.querySelectorAll('font[size="7"]');
+            fontElements.forEach(el => {
+                el.removeAttribute('size');
+                el.style.fontSize = e.target.value;
+            });
+        });
+
+        // Voice recording
+        document.getElementById('voice-record-btn').addEventListener('click', () => this.toggleVoiceRecording());
+        
+        // Image upload
+        document.getElementById('image-upload-btn').addEventListener('click', () => this.uploadImage());
+
+        // Settings
+        document.getElementById('theme-select').addEventListener('change', (e) => this.changeTheme(e.target.value));
+        document.getElementById('language-select').addEventListener('change', (e) => this.changeLanguage(e.target.value));
+        
+        // Toggle buttons
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => btn.classList.toggle('active'));
+        });
+
+        // Modal
+        document.querySelector('.close-modal').addEventListener('click', () => this.closeSearchModal());
+        document.getElementById('search-input').addEventListener('input', (e) => this.searchNotes(e.target.value));
+
+        // Click outside sidebar to close
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.getElementById('menu-btn');
+            if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Auto-save
+        setInterval(() => {
+            if (this.currentNote && document.getElementById('editor-view').classList.contains('active')) {
+                this.saveCurrentNote(true);
+            }
+        }, 30000); // Auto-save every 30 seconds
+    }
+
+    loadTranslations() {
+        this.translations = {
+            tr: {
+                'all-notes': 'Tüm Notlar',
+                'favorites': 'Favoriler',
+                'recent': 'Son Kullanılan',
+                'tasks': 'Görevler',
+                'reminders': 'Hatırlatmalar',
+                'tags': 'Etiketler',
+                'voice-notes': 'Sesli Notlar',
+                'countries': 'Gelişmiş Ülkeler',
+                'new-note': 'Yeni Not',
+                'save': 'Kaydet',
+                'search': 'Ara',
+                'settings': 'Ayarlar'
+            },
+            en: {
+                'all-notes': 'All Notes',
+                'favorites': 'Favorites',
+                'recent': 'Recent',
+                'tasks': 'Tasks',
+                'reminders': 'Reminders',
+                'tags': 'Tags',
+                'voice-notes': 'Voice Notes',
+                'countries': 'Developed Countries',
+                'new-note': 'New Note',
+                'save': 'Save',
+                'search': 'Search',
+                'settings': 'Settings'
+            }
+        };
+    }
+
+    loadCountriesData() {
+        this.countries = [
+            { name: 'Norveç', flag: '🇳🇴', info: 'HDI: 0.957 | Başkent: Oslo' },
+            { name: 'İsviçre', flag: '🇨🇭', info: 'HDI: 0.955 | Başkent: Bern' },
+            { name: 'İrlanda', flag: '🇮🇪', info: 'HDI: 0.955 | Başkent: Dublin' },
+            { name: 'Almanya', flag: '🇩🇪', info: 'HDI: 0.947 | Başkent: Berlin' },
+            { name: 'Hong Kong', flag: '🇭🇰', info: 'HDI: 0.949 | Özel İdari Bölge' },
+            { name: 'Avustralya', flag: '🇦🇺', info: 'HDI: 0.946 | Başkent: Canberra' },
+            { name: 'İzlanda', flag: '🇮🇸', info: 'HDI: 0.949 | Başkent: Reykjavik' },
+            { name: 'İsveç', flag: '🇸🇪', info: 'HDI: 0.945 | Başkent: Stockholm' },
+            { name: 'Singapur', flag: '🇸🇬', info: 'HDI: 0.939 | Şehir Devleti' },
+            { name: 'Hollanda', flag: '🇳🇱', info: 'HDI: 0.944 | Başkent: Amsterdam' }
+        ];
+    }
+
+    toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+    }
+
+    showView(viewName) {
+        // Hide all views
+        document.querySelectorAll('.view').forEach(view => {
+            view.classList.remove('active');
+        });
+        
+        // Show selected view
+        const targetView = document.getElementById(`${viewName}-view`) || document.getElementById('notes-view');
+        targetView.classList.add('active');
+        
+        this.currentView = viewName;
+        
+        // Load view-specific content
+        switch(viewName) {
+            case 'countries':
+                this.renderCountries();
+                break;
+            case 'all-notes':
+            case 'favorites':
+            case 'recent':
+                this.renderNotes();
+                break;
+        }
+    }
 
     setActiveNavItem(activeItem) {
         document.querySelectorAll('.sidebar-menu a').forEach(item => {
@@ -24,50 +188,6 @@ class PremiumNotesApp {
         });
         activeItem.classList.add('active');
     }
-
-
-    // --- Simple AES-GCM encryption helpers ---
-    async getCryptoKey() {
-        const pass = localStorage.getItem('encryption-passphrase') || 'premium-notes-default-pass';
-        const enc = new TextEncoder();
-        const keyMaterial = await window.crypto.subtle.importKey(
-            'raw', enc.encode(pass), {name: 'PBKDF2'}, false, ['deriveKey']
-        );
-        const salt = enc.encode('pn-salt-v1'); // fixed salt for demo
-        return await window.crypto.subtle.deriveKey(
-            {name:'PBKDF2', salt, iterations: 100000, hash: 'SHA-256'},
-            keyMaterial,
-            {name:'AES-GCM', length: 256},
-            false,
-            ['encrypt','decrypt']
-        );
-    }
-
-    async encryptText(plainText) {
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const key = await this.getCryptoKey();
-        const enc = new TextEncoder();
-        const cipher = await window.crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(plainText));
-        const buff = new Uint8Array(iv.byteLength + cipher.byteLength);
-        buff.set(iv,0); buff.set(new Uint8Array(cipher), iv.byteLength);
-        // base64 encode
-        let binary = ''; buff.forEach(b => binary += String.fromCharCode(b));
-        return btoa(binary);
-    }
-
-    async decryptText(b64) {
-        try {
-            const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-            const iv = data.slice(0,12);
-            const cipher = data.slice(12);
-            const key = await this.getCryptoKey();
-            const plain = await window.crypto.subtle.decrypt({name:'AES-GCM', iv}, key, cipher);
-            return new TextDecoder().decode(plain);
-        } catch (e) {
-            return ''; // decryption failed
-        }
-    }
-
 
     createNewNote() {
         this.currentNote = {
@@ -84,7 +204,7 @@ class PremiumNotesApp {
         this.showNoteEditor();
     }
 
-    async showNoteEditor(note = null) {
+    showNoteEditor(note = null) {
         if (note) {
             this.currentNote = note;
         }
@@ -93,11 +213,7 @@ class PremiumNotesApp {
         
         // Populate editor
         document.getElementById('note-title').value = this.currentNote.title || '';
-        let contentToShow = this.currentNote.content || '';
-        if (this.currentNote.isEncrypted && contentToShow) {
-            contentToShow = await this.decryptText(contentToShow);
-        }
-        document.getElementById('note-editor').innerHTML = contentToShow;
+        document.getElementById('note-editor').innerHTML = this.currentNote.content || '';
         document.getElementById('note-tags').value = this.currentNote.tags ? this.currentNote.tags.join(', ') : '';
         
         if (this.currentNote.reminder) {
@@ -111,11 +227,11 @@ class PremiumNotesApp {
         }
     }
 
-    async saveCurrentNote(autoSave = false) {
+    saveCurrentNote(autoSave = false) {
         if (!this.currentNote) return;
         
         const title = document.getElementById('note-title').value.trim();
-        let content = document.getElementById('note-editor').innerHTML.trim();
+        const content = document.getElementById('note-editor').innerHTML.trim();
         const tags = document.getElementById('note-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
         const reminder = document.getElementById('note-reminder').value;
         
@@ -132,15 +248,6 @@ class PremiumNotesApp {
         this.currentNote.reminder = reminder || null;
         this.currentNote.updatedAt = new Date().toISOString();
         
-        // Encrypt if enabled
-        const encryptionEnabled = document.getElementById('encryption-btn')?.classList.contains('active');
-        if (encryptionEnabled && content) {
-            content = await this.encryptText(content);
-            this.currentNote.isEncrypted = true;
-        } else {
-            this.currentNote.isEncrypted = false;
-        }
-
         // Add or update note
         const existingIndex = this.notes.findIndex(note => note.id === this.currentNote.id);
         if (existingIndex >= 0) {
@@ -196,8 +303,8 @@ class PremiumNotesApp {
             noteCard.className = 'note-card';
             noteCard.onclick = () => this.showNoteEditor(note);
             
-            const preview = note.isEncrypted ? (this.translations[this.currentLang]['encrypted-note']) : (this.stripHtml(note.content).substring(0, 150) + (this.stripHtml(note.content).length > 150 ? '...' : ''));
-            const formattedDate = new Date(note.updatedAt).toLocaleDateString(this.getLocale());
+            const preview = this.stripHtml(note.content).substring(0, 150) + (note.content.length > 150 ? '...' : '');
+            const formattedDate = new Date(note.updatedAt).toLocaleDateString('tr-TR');
             
             noteCard.innerHTML = `
                 <div class="note-card-header">
@@ -213,6 +320,68 @@ class PremiumNotesApp {
             
             notesGrid.appendChild(noteCard);
         });
+    }
+
+    renderCountries() {
+        const countriesGrid = document.getElementById('countries-grid');
+        countriesGrid.innerHTML = '';
+        
+        this.countries.forEach(country => {
+            const countryCard = document.createElement('div');
+            countryCard.className = 'country-card';
+            
+            countryCard.innerHTML = `
+                <div class="country-flag">${country.flag}</div>
+                <h3 class="country-name">${country.name}</h3>
+                <p class="country-info">${country.info}</p>
+            `;
+            
+            countriesGrid.appendChild(countryCard);
+        });
+    }
+
+    executeCommand(command) {
+        document.execCommand(command, false, null);
+        document.getElementById('note-editor').focus();
+    }
+
+    async toggleVoiceRecording() {
+        const btn = document.getElementById('voice-record-btn');
+        
+        if (!this.isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.mediaRecorder = new MediaRecorder(stream);
+                this.audioChunks = [];
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    this.audioChunks.push(event.data);
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    this.insertAudioIntoNote(audioUrl);
+                };
+                
+                this.mediaRecorder.start();
+                this.isRecording = true;
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
+                btn.style.backgroundColor = 'var(--error)';
+                
+                this.showNotification('Ses kaydı başladı...', 'info');
+            } catch (error) {
+                this.showNotification('Mikrofon erişimi reddedildi!', 'error');
+            }
+        } else {
+            this.mediaRecorder.stop();
+            this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            this.isRecording = false;
+            btn.innerHTML = '<i class="fas fa-microphone"></i>';
+            btn.style.backgroundColor = '';
+            
+            this.showNotification('Ses kaydı tamamlandı!', 'success');
+        }
     }
 
     insertAudioIntoNote(audioUrl) {
@@ -323,39 +492,11 @@ class PremiumNotesApp {
         localStorage.setItem('theme-preference', theme);
     }
 
-    async changeLanguage(lang) {
-        this.currentLang = lang;
+    changeLanguage(lang) {
+        // This would typically reload the interface with new language
         localStorage.setItem('language-preference', lang);
-        this.applyTranslations();
-        this.renderNotes();
-        this.showNotification(lang === 'tr' ? 'Dil Türkçe olarak ayarlandı' : 'Language set to English', 'success');
+        this.showNotification('Dil değişikliği için uygulamayı yeniden başlatın', 'info');
     }
-
-    getLocale() {
-        return (this.currentLang === 'tr') ? 'tr-TR' : 'en-US';
-    }
-
-    applyTranslations() {
-        const dict = this.translations[this.currentLang] || {};
-        // text content
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (dict[key]) el.textContent = dict[key];
-        });
-        // placeholders
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-            const key = el.getAttribute('data-i18n-placeholder');
-            if (dict[key]) el.setAttribute('placeholder', dict[key]);
-        });
-        // editor pseudo-placeholder
-        const editor = document.getElementById('note-editor');
-        if (editor && dict['note-placeholder']) {
-            editor.setAttribute('placeholder', dict['note-placeholder']);
-        }
-        // document lang
-        document.documentElement.setAttribute('lang', this.currentLang);
-    }
-
 
     stripHtml(html) {
         const tmp = document.createElement('div');
@@ -413,7 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved language
     const savedLang = localStorage.getItem('language-preference') || 'tr';
     document.getElementById('language-select').value = savedLang;
-    window.app.changeLanguage(savedLang);
 });
 
 // Add CSS animation for notifications
